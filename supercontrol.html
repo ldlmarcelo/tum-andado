@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista de Productos</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    /* Estilos opcionales */
+    .editable {
+        background-color: #f0f0f0;
+    }
+    body {
+        background-color: orange;
+    }
+</style>
+</head>
+<body>
+<div class="container mt-5">
+    <img width="350px" src="logo.png" alt="Tu Mandado" >
+    <div class="row">
+        <div class="col-md-4">
+            <label for="producto" class="form-label">Producto:</label>
+            <input type="text" id="producto" class="form-control mb-3" maxlength="50" required>
+        </div>
+        <div class="col-md-4">
+            <label for="cantidad" class="form-label">Cantidad:</label>
+            <input type="number" id="cantidad" class="form-control mb-3">
+        </div>
+        <div class="col-md-4">
+            <label for="precio" class="form-label">Precio:</label>
+            <input type="number" id="precio" class="form-control mb-3" step="0.01">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <button onclick="agregarProducto()" class="btn btn-primary mb-3">Agregar Producto</button>
+        </div>
+        <div class="col-md-6">
+            <button onclick="descartarLista()" class="btn btn-danger mb-3">Descartar Lista</button>
+        </div>
+    </div>
+
+    <h3>Productos</h3>
+    <div class="table-responsive">
+        <table id="lista-productos" class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unitario</th>
+                    <th>Precio Total</th>
+                    <th>Editar</th>
+                    <th>Eliminar</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="3">Total:</th>
+                    <th id="total">0.00</th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Función para agregar un producto a la lista
+    function agregarProducto() {
+        var productoInput = document.getElementById('producto');
+        var cantidadInput = document.getElementById('cantidad');
+        var precioInput = document.getElementById('precio');
+
+        var producto = productoInput.value.trim();
+        var cantidad = parseInt(cantidadInput.value) || 0;
+        var precio = parseFloat(precioInput.value) || 0;
+
+        if (producto === '') {
+            alert('El campo Producto es obligatorio.');
+            return;
+        }
+
+        // Crear objeto de producto
+        var nuevoProducto = {
+            producto: producto,
+            cantidad: cantidad,
+            precio: precio
+        };
+
+        // Obtener lista de productos del localStorage o inicializarla si está vacía
+        var productos = JSON.parse(localStorage.getItem('productos')) || [];
+
+        // Agregar el nuevo producto a la lista
+        productos.push(nuevoProducto);
+
+        // Guardar la lista de productos en localStorage
+        localStorage.setItem('productos', JSON.stringify(productos));
+
+        // Limpiar campos de entrada
+        productoInput.value = '';
+        cantidadInput.value = '';
+        precioInput.value = '';
+
+        // Actualizar la lista de productos mostrada en la página
+        mostrarProductos();
+    }
+
+    // Función para eliminar un producto de la lista
+    function eliminarProducto(index) {
+        // Obtener lista de productos del localStorage
+        var productos = JSON.parse(localStorage.getItem('productos')) || [];
+
+        // Eliminar el producto en el índice proporcionado
+        productos.splice(index, 1);
+
+        // Actualizar la lista de productos en localStorage
+        localStorage.setItem('productos', JSON.stringify(productos));
+
+        // Actualizar la tabla mostrada en la página
+        mostrarProductos();
+    }
+
+    // Función para editar un producto de la lista
+    function editarProducto(index) {
+        var row = document.getElementById('lista-productos').rows[index + 1];
+        var productoCell = row.cells[0];
+        var cantidadCell = row.cells[1];
+        var precioCell = row.cells[2];
+        var precioTotalCell = row.cells[3];
+
+        // Guardar los valores originales
+        var originalValues = {
+            producto: productoCell.textContent.trim(),
+            cantidad: cantidadCell.textContent.trim(),
+            precio: precioCell.textContent.trim()
+        };
+
+        // Hacer las celdas editables
+        productoCell.contentEditable = true;
+        cantidadCell.contentEditable = true;
+        precioCell.contentEditable = true;
+
+        // Cambiar el estilo de las celdas editables
+        productoCell.classList.add('editable');
+        cantidadCell.classList.add('editable');
+        precioCell.classList.add('editable');
+
+        // Limpiar el valor al hacer foco en el campo a editar
+        productoCell.onfocus = function() {
+            if (productoCell.textContent.trim() === originalValues.producto) {
+                productoCell.textContent = '';
+            }
+        };
+        cantidadCell.onfocus = function() {
+            if (cantidadCell.textContent.trim() === originalValues.cantidad) {
+                cantidadCell.textContent = '';
+            }
+        };
+        precioCell.onfocus = function() {
+            if (precioCell.textContent.trim() === originalValues.precio) {
+                precioCell.textContent = '';
+            }
+        };
+
+        // Agregar botón de "Guardar" y "Cancelar"
+        var guardarButton = document.createElement('button');
+        guardarButton.textContent = 'Guardar';
+        guardarButton.onclick = function() {
+            guardarEdicion(index);
+        };
+
+        var cancelarButton = document.createElement('button');
+        cancelarButton.textContent = 'Cancelar';
+        cancelarButton.onclick = function() {
+            cancelarEdicion(row, originalValues);
+        };
+
+        // Insertar botones en la celda "Editar"
+        var editarCell = row.cells[4];
+        editarCell.innerHTML = '';
+        editarCell.appendChild(guardarButton);
+        editarCell.appendChild(cancelarButton);
+    }
+
+    // Función para guardar la edición de un producto
+    function guardarEdicion(index) {
+        var row = document.getElementById('lista-productos').rows[index + 1];
+        var productoCell = row.cells[0];
+        var cantidadCell = row.cells[1];
+        var precioCell = row.cells[2];
+
+        // Quitar la clase editable de las celdas
+        productoCell.classList.remove('editable');
+        cantidadCell.classList.remove('editable');
+        precioCell.classList.remove('editable');
+
+        // Obtener los nuevos valores editados
+        var nuevoProducto = {
+            producto: productoCell.textContent.trim(),
+            cantidad: parseInt(cantidadCell.textContent) || 0,
+            precio: parseFloat(precioCell.textContent) || 0
+        };
+
+        // Obtener lista de productos del localStorage
+        var productos = JSON.parse(localStorage.getItem('productos')) || [];
+
+        // Actualizar el producto en la lista
+        productos[index] = nuevoProducto;
+
+        // Guardar la lista de productos en localStorage
+        localStorage.setItem('productos', JSON.stringify(productos));
+
+        // Actualizar la tabla mostrada en la página
+        mostrarProductos();
+    }
+
+    // Función para cancelar la edición de un producto
+    function cancelarEdicion(row, originalValues) {
+        var productoCell = row.cells[0];
+        var cantidadCell = row.cells[1];
+        var precioCell = row.cells[2];
+
+        // Restaurar los valores originales
+        productoCell.textContent = originalValues.producto;
+        cantidadCell.textContent = originalValues.cantidad;
+        precioCell.textContent = originalValues.precio;
+
+        // Quitar la clase editable de las celdas
+        productoCell.classList.remove('editable');
+        cantidadCell.classList.remove('editable');
+        precioCell.classList.remove('editable');
+
+        // Actualizar la tabla mostrada en la página
+        mostrarProductos();
+    }
+
+    // Función para descartar toda la lista de productos
+    function descartarLista() {
+        // Limpiar el localStorage
+        localStorage.removeItem('productos');
+
+        // Actualizar la tabla mostrada en la página
+        mostrarProductos();
+    }
+
+    // Función para mostrar los productos en la lista
+    function mostrarProductos() {
+        var listaProductosBody = document.querySelector('#lista-productos tbody');
+        var listaProductosFoot = document.querySelector('#lista-productos tfoot');
+        listaProductosBody.innerHTML = '';
+
+        // Obtener lista de productos del localStorage
+        var productos = JSON.parse(localStorage.getItem('productos')) || [];
+
+        var total = 0;
+
+        // Mostrar cada producto en la lista
+        productos.forEach(function(producto, index) {
+            var row = listaProductosBody.insertRow();
+            var cellProducto = row.insertCell(0);
+            var cellCantidad = row.insertCell(1);
+            var cellPrecioUnitario = row.insertCell(2);
+            var cellPrecioTotal = row.insertCell(3);
+            var cellEditar = row.insertCell(4);
+            var cellEliminar = row.insertCell(5);
+
+            cellProducto.textContent = producto.producto;
+            cellCantidad.textContent = producto.cantidad;
+            cellPrecioUnitario.textContent = '$' + producto.precio.toFixed(2);
+            var precioTotal = producto.cantidad * producto.precio;
+            cellPrecioTotal.textContent = '$' + precioTotal.toFixed(2);
+            total += precioTotal;
+
+            var editarButton = document.createElement('button');
+            editarButton.textContent = 'Editar';
+            editarButton.onclick = function() {
+                editarProducto(index);
+            };
+            cellEditar.appendChild(editarButton);
+
+            var eliminarButton = document.createElement('button');
+            eliminarButton.textContent = 'Eliminar';
+            eliminarButton.onclick = function() {
+                eliminarProducto(index);
+            };
+            cellEliminar.appendChild(eliminarButton);
+        });
+
+        // Mostrar el total
+        document.getElementById('total').textContent = '$' + total.toFixed(2);
+    }
+
+    // Mostrar los productos al cargar la página
+    mostrarProductos();
+</script>
+</body>
+</html>
